@@ -144,6 +144,54 @@ class UsbHostHid:
         self._prev_report = self._buf[:]
         return self._events
 
+class AccumulatedInt:
+    def __init__(self):
+        self.accumulation = 0.0
+        
+    def __call__(self, new):
+        self.accumulation += new
+        remaining = fmod(self.accumulation, 1)
+        int_part = self.accumulation - remaining
+        self.accumulation = remaining
+        return int(int_part)
+        
+class State:
+    def __init__(
+        self, filter_level=None, relay_thr=None, id=None
+    ):
+        self.id = id
+        self._now = 0
+        self.last = 0
+        if filter_level is not None:
+            self.use_filter = True
+            self.alpha = 1 / 2**filter_level
+        else:
+            self.use_filter = False
+        if relay_thr is not None:
+            self.use_relay = True
+            self.relay = Relay(relay_thr)
+        else:
+            self.use_relay = False
+
+    @property
+    def now(self):
+        return self._now
+
+    @now.setter
+    def now(self, new):
+        self.last = self._now
+        # low pass filter
+        if self.use_filter:
+            new = new * self.alpha + self._now * (1 - self.alpha)
+        # Relay
+        diff = new - self.last
+        new = self.last + (self.relay(diff) if self.use_relay else diff)
+        self._now = new
+
+    @property
+    def diff(self):
+        return self._now - self.last
+    
 
 # ------------------------ EXAMPLE MAIN LOGIC ------------------------
 
@@ -159,21 +207,11 @@ usb_client_device.set_endpoint(0x82)
 print("Entering main event loop...")
 
 mouse = Mouse(usb_hid.devices)
-
-class AccumulatedInt:
-    def __init__(self):
-        self.accumulation = 0.0
-        
-    def __call__(self, new):
-        self.accumulation += new
-        remaining = fmod(self.accumulation, 1)
-        int_part = self.accumulation - remaining
-        self.accumulation = remaining
-        return int(int_part)
-        
-    
 scroll_int = AccumulatedInt()
-scroll_speed = 0.05
+scroll_speed = 0.03
+left = State()
+right = State()
+middle = State()
     
 while True:
     # 4. Poll the .events property to check for new mouse data
@@ -206,19 +244,23 @@ while True:
                 wheel=-mouse_event['wheel_v'],
             )
             
-        if mouse_event['left']:
+        left.now = mouse_event['left']
+        right.now = mouse_event['right']
+        middle.now = mouse_event['middle']
+            
+        if left.diff == 1:
             mouse.press(Mouse.LEFT_BUTTON)
-        else:
+        elif left.diff == -1:
             mouse.release(Mouse.LEFT_BUTTON)
             
-        if mouse_event['right']:
+        if right.diff == 1:
             mouse.press(Mouse.RIGHT_BUTTON)
-        else:
+        elif right.diff == -1:
             mouse.release(Mouse.RIGHT_BUTTON)
             
-        if mouse_event['middle']:
+        if middle.diff == 1:
             mouse.press(Mouse.MIDDLE_BUTTON)
-        else:
+        elif middle.diff == -1:
             mouse.release(Mouse.MIDDLE_BUTTON)
         
     # time.sleep(0.01)
