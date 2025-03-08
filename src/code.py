@@ -30,16 +30,6 @@ class UsbHostHid:
         # Optionally ignore “noisy” indexes in the report
         self._ignore_indexes = []
 
-    def _reports_equal(self, a, b):
-        """Return True if two reports are the same, ignoring self._ignore_indexes."""
-        if (a is None) != (b is None):
-            return False
-        for i in range(len(a)):
-            if i not in self._ignore_indexes:
-                if a[i] != b[i]:
-                    return False
-        return True
-
     def scan(self):
         """
         Scan all connected USB devices, print descriptor information, and
@@ -118,36 +108,34 @@ class UsbHostHid:
         if count < 3:
             return self._events  # Not enough bytes for a standard mouse packet
 
-        # Compare with previous report to avoid duplicates
-        if not self._reports_equal(self._buf, self._prev_report):
-            # Parse the mouse report
-            button_byte = self._buf[0]
-            x_move = to_signed_8(self._buf[1])
-            y_move = to_signed_8(self._buf[2])
+        # Parse the mouse report
+        button_byte = self._buf[0]
+        x_move = to_signed_8(self._buf[1])
+        y_move = to_signed_8(self._buf[2])
 
-            wheel_vertical = 0
-            if count >= 4:
-                wheel_vertical = to_signed_8(self._buf[3])  # scroll wheel
+        wheel_vertical = 0
+        if count >= 4:
+            wheel_vertical = to_signed_8(self._buf[3])  # scroll wheel
 
-            # Typical button bits in many 5-button mice:
-            left_button   = (button_byte & 0x01) != 0
-            right_button  = (button_byte & 0x02) != 0
-            middle_button = (button_byte & 0x04) != 0
-            back_button   = (button_byte & 0x08) != 0
-            forward_button= (button_byte & 0x10) != 0
+        # Typical button bits in many 5-button mice:
+        left_button   = (button_byte & 0x01) != 0
+        right_button  = (button_byte & 0x02) != 0
+        middle_button = (button_byte & 0x04) != 0
+        back_button   = (button_byte & 0x08) != 0
+        forward_button= (button_byte & 0x10) != 0
 
-            # Create an “event” dictionary
-            event = {
-                "left": left_button,
-                "right": right_button,
-                "middle": middle_button,
-                "back": back_button,
-                "forward": forward_button,
-                "x": x_move,
-                "y": y_move,
-                "wheel_v": wheel_vertical
-            }
-            self._events.append(event)
+        # Create an “event” dictionary
+        event = {
+            "left": left_button,
+            "right": right_button,
+            "middle": middle_button,
+            "back": back_button,
+            "forward": forward_button,
+            "x": x_move,
+            "y": y_move,
+            "wheel_v": wheel_vertical
+        }
+        self._events.append(event)
 
         self._prev_report = self._buf[:]
         return self._events
