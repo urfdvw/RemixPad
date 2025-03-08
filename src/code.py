@@ -7,6 +7,10 @@ import adafruit_usb_host_descriptors
 import struct
 import collections
 
+import usb_hid
+from adafruit_hid.mouse import Mouse
+from math import fmod
+
 def to_signed_8(val):
     """Helper to convert an unsigned byte (0-255) to signed (-128 to 127)."""
     return struct.unpack("b", bytes([val]))[0]
@@ -154,6 +158,23 @@ usb_client_device.set_endpoint(0x82)
 
 print("Entering main event loop...")
 
+mouse = Mouse(usb_hid.devices)
+
+class AccumulatedInt:
+    def __init__(self):
+        self.accumulation = 0.0
+        
+    def __call__(self, new):
+        self.accumulation += new
+        remaining = fmod(self.accumulation, 1)
+        int_part = self.accumulation - remaining
+        self.accumulation = remaining
+        return int(int_part)
+        
+    
+scroll_int = AccumulatedInt()
+scroll_speed = 0.05
+    
 while True:
     # 4. Poll the .events property to check for new mouse data
     evt_queue = usb_client_device.events
@@ -162,8 +183,42 @@ while True:
     if evt_queue:
         mouse_event = evt_queue.popleft()  # FIFO
         # Show the event with multiple print-arguments + trailing commas
-        print(
-            "Got mouse event: ",
-            mouse_event,
-        )
-    time.sleep(0.01)
+        # print(
+        #     "Got mouse event: ",
+        #     mouse_event,
+        # )
+        if mouse_event['back']:
+            mouse.move(
+                wheel=scroll_int(
+                    -scroll_speed * (abs(mouse_event['x']) + abs(mouse_event['y']))
+                )
+            )
+        elif mouse_event['forward']:
+            mouse.move(
+                wheel=scroll_int(
+                    scroll_speed * (abs(mouse_event['x']) + abs(mouse_event['y']))
+                )
+            )
+        else:
+            mouse.move(
+                x=mouse_event['x'],
+                y=mouse_event['y'],
+                wheel=-mouse_event['wheel_v'],
+            )
+            
+        if mouse_event['left']:
+            mouse.press(Mouse.LEFT_BUTTON)
+        else:
+            mouse.release(Mouse.LEFT_BUTTON)
+            
+        if mouse_event['right']:
+            mouse.press(Mouse.RIGHT_BUTTON)
+        else:
+            mouse.release(Mouse.RIGHT_BUTTON)
+            
+        if mouse_event['middle']:
+            mouse.press(Mouse.MIDDLE_BUTTON)
+        else:
+            mouse.release(Mouse.MIDDLE_BUTTON)
+        
+    # time.sleep(0.01)
