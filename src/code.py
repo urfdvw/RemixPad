@@ -9,7 +9,10 @@ import collections
 
 import usb_hid
 from adafruit_hid.mouse import Mouse
-from math import fmod
+from math import fmod, sqrt
+
+def diag_len(x, y):
+    return sqrt(x * x + y * y)
 
 def to_signed_8(val):
     """Helper to convert an unsigned byte (0-255) to signed (-128 to 127)."""
@@ -228,13 +231,13 @@ while True:
         if mouse_event['back']:
             mouse.move(
                 wheel=scroll_int(
-                    -scroll_speed * (abs(mouse_event['x']) + abs(mouse_event['y']))
+                    -scroll_speed * diag_len(mouse_event['x'], mouse_event['y'])
                 )
             )
         elif mouse_event['forward']:
             mouse.move(
                 wheel=scroll_int(
-                    scroll_speed * (abs(mouse_event['x']) + abs(mouse_event['y']))
+                    scroll_speed * diag_len(mouse_event['x'], mouse_event['y'])
                 )
             )
         else:
