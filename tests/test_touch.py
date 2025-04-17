@@ -34,7 +34,7 @@ touch_states = [
 
 #%% test if touched
 
-while False:
+while True:
     for i in range(len(touch_pads)):
         touch_states[i].now = 1 * touch_pads[i].value
         if touch_states[i].diff == 1:
