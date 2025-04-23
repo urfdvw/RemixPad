@@ -10,6 +10,8 @@ import usb_hid
 from adafruit_hid.mouse import Mouse
 from math import fmod, sqrt
 
+from utils import State
+
 def to_signed_8(val):
     """Helper to convert an unsigned byte (0-255) to signed (-128 to 127)."""
     return struct.unpack("b", bytes([val]))[0]
@@ -32,6 +34,17 @@ class UsbHostHid:
 
         # Optionally ignore “noisy” indexes in the report
         self._ignore_indexes = []
+        
+        # States
+        self.x_move = State()
+        self.y_move = State()
+        self.left_button = State()   
+        self.right_button = State()  
+        self.middle_button = State() 
+        self.back_button = State()   
+        self.forward_button = State()
+        self.wheel_v = State()
+
 
     def scan(self):
         """
@@ -116,30 +129,29 @@ class UsbHostHid:
 
         # Parse the mouse report
         button_byte = self._buf[0]
-        x_move = to_signed_8(self._buf[1])
-        y_move = to_signed_8(self._buf[2])
+        self.x_move.now = to_signed_8(self._buf[1])
+        self.y_move.now = to_signed_8(self._buf[2])
 
-        wheel_vertical = 0
         if count >= 4:
-            wheel_vertical = to_signed_8(self._buf[3])  # scroll wheel
+            self.wheel_v.now = to_signed_8(self._buf[3])  # scroll wheel
 
         # Typical button bits in many 5-button mice:
-        left_button   = (button_byte & 0x01) != 0
-        right_button  = (button_byte & 0x02) != 0
-        middle_button = (button_byte & 0x04) != 0
-        back_button   = (button_byte & 0x08) != 0
-        forward_button= (button_byte & 0x10) != 0
+        self.left_button.now    = 1 * ((button_byte & 0x01) != 0)
+        self.right_button.now   = 1 * ((button_byte & 0x02) != 0)
+        self.middle_button.now  = 1 * ((button_byte & 0x04) != 0)
+        self.back_button.now    = 1 * ((button_byte & 0x08) != 0)
+        self.forward_button.now = 1 * ((button_byte & 0x10) != 0)
 
         # Create an “event” dictionary
         event = {
-            "left": left_button,
-            "right": right_button,
-            "middle": middle_button,
-            "back": back_button,
-            "forward": forward_button,
-            "x": x_move,
-            "y": y_move,
-            "wheel_v": wheel_vertical
+            "left": self.left_button,
+            "right": self.right_button,
+            "middle": self.middle_button,
+            "back": self.back_button,
+            "forward": self.forward_button,
+            "x": self.x_move,
+            "y": self.y_move,
+            "wheel_v": self.wheel_v
         }
         self._events.append(event)
 
