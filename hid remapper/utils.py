@@ -1,16 +1,29 @@
 from math import fmod
 
 class AccumulatedInt:
-    def __init__(self):
+    def __init__(self, fast_turn=True):
         self.accumulation = 0.0
-
+        self.fast_turn = fast_turn
     def __call__(self, new):
-        self.accumulation += new
-        # remaining = fmod(self.accumulation, 1)
-        remaining = self.accumulation % 1
+        if self.fast_turn and new * self.accumulation < 0:
+            self.accumulation = new
+        else:
+            self.accumulation += new
+        remaining = fmod(self.accumulation, 1)
         int_part = self.accumulation - remaining
         self.accumulation = remaining
         return int(int_part)
+
+class Limit:
+    def __init__(self, lower, upper):
+        self.lower = lower
+        self.upper = upper
+    def __call__(self, val):
+        if val > self.upper:
+            return self.upper
+        if val < self.lower:
+            return self.lower
+        return val
 
 class State:
     def __init__(
