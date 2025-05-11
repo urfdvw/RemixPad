@@ -91,7 +91,10 @@ class UsbHostHid:
             # Detach kernel driver if necessary (Linux-specific)
             if self._device.is_kernel_driver_active(0):
                 self._device.detach_kernel_driver(0)
-
+            return 1
+        else:
+            return 0
+            
     def set_endpoint(self, endpoint):
         """Set the endpoint we will read from (e.g. 0x81, 0x82, etc.)."""
         self._endpoint = endpoint
@@ -199,11 +202,18 @@ class State:
 # ------------------------ EXAMPLE MAIN LOGIC ------------------------
 
 # 1. Instantiate the object
-usb_client_device = UsbHostHid(board.GP21, board.GP22)
+
+#%%
 
 # 2. Scan devices to set up self._device
-usb_client_device.scan()
-
+while True:
+    usb_client_device = UsbHostHid(board.GP21, board.GP22)
+    if usb_client_device.scan():
+        print('connected')
+        break
+    else:
+        print('retry')
+    time.sleep(0.5)
 # 3. Set the monitored endpoint (adjust if needed)
 usb_client_device.set_endpoint(0x82)
 
