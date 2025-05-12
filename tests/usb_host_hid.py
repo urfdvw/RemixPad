@@ -120,7 +120,7 @@ class UsbHostHid:
             return self._events
 
         try:
-            count = self._device.read(self._endpoint, self._buf)
+            count = self._device.read(self._endpoint, self._buf, timeout=50)
         except usb.core.USBTimeoutError:
             return self._events  # No new data this time
 

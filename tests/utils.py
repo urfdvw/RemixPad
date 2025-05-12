@@ -46,3 +46,22 @@ class State:
     def diff(self):
         return self._now - self.last
     
+class Clamp:
+    def __init__(self, low, high):
+        self.low = low
+        self.high = high
+    def __call__(self, val):
+        if val < self.low:
+            return low
+        if val > self.high:
+            return high
+        return val
+        
+class Slow:
+    def __init__(self, rate=0.8):
+        self.rate = rate
+        self.val = 0
+    def __call__(self, val):
+        out = self.rate * self.val + (1 - self.rate) * val
+        self.val = out
+        return out

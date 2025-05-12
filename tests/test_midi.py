@@ -1,6 +1,6 @@
 import touchio
 import board
-from utils import State
+from utils import State, Clamp, Slow
 from time import sleep
 
 import time
@@ -10,6 +10,8 @@ from adafruit_midi.control_change import ControlChange
 from adafruit_midi.control_change_values import VOLUME
 from adafruit_midi.note_on import NoteOn
 from adafruit_midi.note_off import NoteOff
+
+from usb_host_hid import UsbHostHid 
 
 #%% setup tuch
 pins = [
@@ -59,15 +61,25 @@ for i in range(3):
 sequence = Notes
 
 # Global volume fade-in using Control Change 7
-min_volume = 10
-max_volume = 120
-steps = 10
-fade_delay = 0.1
+Vol = 100
+volclamp = Clamp(0, 127)
+volslow = Slow(0.9)
+
+#%% set up usb host
+usb_client_device = UsbHostHid(board.GP21, board.GP22)
+while True:
+    if usb_client_device.scan():
+        break
+    else:
+        print('failed')
+        while True:
+            pass
+usb_client_device.set_endpoint(0x82)
 
 #%% test midi
 
 # Play the sequence with fixed velocity (volume already handled globally)
-for note in sequence:
+for note in []:# sequence:
     midi.send(NoteOn(note, 100))  # 100 = velocity
     time.sleep(0.3)
     midi.send(NoteOff(note, 0))
@@ -75,6 +87,17 @@ for note in sequence:
 #%% test if touched
 print("test touch")
 while True:
+    evt_queue = usb_client_device.events
+    if evt_queue:
+        mouse_event = evt_queue.popleft()  # FIFO
+        if mouse_event['x'].now:
+            vol = volclamp(abs(int(volslow(mouse_event['x'].now))))
+    else:
+        vol = volclamp(abs(int(volslow(0))))
+    print(vol)
+    midi.send(ControlChange(VOLUME, vol))
+        
+            
     for i in range(len(touch_pads)):
         touch_states[i].now = 1 * touch_pads[i].value
         if touch_states[i].diff == 1:
