@@ -58,10 +58,14 @@ class Clamp:
         return val
         
 class Slow:
-    def __init__(self, rate=0.8):
+    def __init__(self, rate=0.8, err = 1):
         self.rate = rate
         self.val = 0
+        self.err = err
     def __call__(self, val):
+        if abs(val - self.val) < self.err:
+            self.val = val
+            return val
         out = self.rate * self.val + (1 - self.rate) * val
         self.val = out
         return out

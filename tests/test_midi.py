@@ -94,10 +94,9 @@ while True:
             vol = volclamp(abs(int(volslow(mouse_event['x'].now))))
     else:
         vol = volclamp(abs(int(volslow(0))))
-    print(vol)
+    # print(vol)
     midi.send(ControlChange(VOLUME, vol))
         
-            
     for i in range(len(touch_pads)):
         touch_states[i].now = 1 * touch_pads[i].value
         if touch_states[i].diff == 1:

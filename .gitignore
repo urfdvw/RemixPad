@@ -1,3 +1,5 @@
 /src/System Volume Information
 *.dat
 /hid remapper/System Volume Information
+tests/.DS_Store
+.DS_Store
