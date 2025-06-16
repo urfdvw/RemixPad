@@ -1,19 +1,20 @@
 import array
+import time
 import usb.core
 import usb_host
 import adafruit_usb_host_descriptors
 import struct
 import collections
 
+import usb_hid
+from adafruit_hid.mouse import Mouse
 from math import fmod, sqrt
 
 from utils import State
 
-
 def to_signed_8(val):
     """Helper to convert an unsigned byte (0-255) to signed (-128 to 127)."""
     return struct.unpack("b", bytes([val]))[0]
-
 
 class UsbHostHid:
     def __init__(self, d_plus, d_minus):
@@ -33,16 +34,17 @@ class UsbHostHid:
 
         # Optionally ignore “noisy” indexes in the report
         self._ignore_indexes = []
-
+        
         # States
         self.x_move = State()
         self.y_move = State()
-        self.left_button = State()
-        self.right_button = State()
-        self.middle_button = State()
-        self.back_button = State()
+        self.left_button = State()   
+        self.right_button = State()  
+        self.middle_button = State() 
+        self.back_button = State()   
         self.forward_button = State()
         self.wheel_v = State()
+
 
     def scan(self):
         """
@@ -58,9 +60,7 @@ class UsbHostHid:
             print("product", d.product)
             print("serial", d.serial_number)
             print("config[0]:")
-            config_desc = adafruit_usb_host_descriptors.get_configuration_descriptor(
-                d, 0
-            )
+            config_desc = adafruit_usb_host_descriptors.get_configuration_descriptor(d, 0)
             idx = 0
             while idx < len(config_desc):
                 desc_len = config_desc[idx]
@@ -94,7 +94,7 @@ class UsbHostHid:
                 "Configuration set for {}, {}, {}".format(
                     self._device.manufacturer,
                     self._device.product,
-                    self._device.serial_number,
+                    self._device.serial_number
                 )
             )
             # Detach kernel driver if necessary (Linux-specific)
@@ -136,10 +136,10 @@ class UsbHostHid:
             self.wheel_v.now = to_signed_8(self._buf[3])  # scroll wheel
 
         # Typical button bits in many 5-button mice:
-        self.left_button.now = 1 * ((button_byte & 0x01) != 0)
-        self.right_button.now = 1 * ((button_byte & 0x02) != 0)
-        self.middle_button.now = 1 * ((button_byte & 0x04) != 0)
-        self.back_button.now = 1 * ((button_byte & 0x08) != 0)
+        self.left_button.now    = 1 * ((button_byte & 0x01) != 0)
+        self.right_button.now   = 1 * ((button_byte & 0x02) != 0)
+        self.middle_button.now  = 1 * ((button_byte & 0x04) != 0)
+        self.back_button.now    = 1 * ((button_byte & 0x08) != 0)
         self.forward_button.now = 1 * ((button_byte & 0x10) != 0)
 
         # Create an “event” dictionary
@@ -151,7 +151,7 @@ class UsbHostHid:
             "forward": self.forward_button,
             "x": self.x_move,
             "y": self.y_move,
-            "wheel_v": self.wheel_v,
+            "wheel_v": self.wheel_v
         }
         self._events.append(event)
 
