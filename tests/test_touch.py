@@ -20,6 +20,12 @@ pins = [
     board.GP13,
     board.GP14,
     board.GP15,
+    board.GP18,
+    board.GP19,
+    board.GP20,
+    board.GP26,
+    board.GP27,
+    board.GP28,
 ]
 
 touch_pads = [
@@ -45,9 +51,9 @@ while True:
 #%% test value
 
 names = ['gp'+str(i) for i in range(len(touch_pads))]
-while True:
+while False:
     print("startplot:", 'x', 'y')
-    for i in range(16):
+    for i in range(len(touch_pads)):
         print(i - 0.1, 0)
         print(i, touch_pads[i].raw_value)
         print(i + 0.1, 0)
